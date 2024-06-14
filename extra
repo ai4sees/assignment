@@ -1,18 +1,30 @@
 import os
 import pandas as pd
-import pwd
 import time
+import subprocess
 
 def get_file_info(path):
     """Returns size, creation time, and author of the file"""
     stat_info = os.stat(path)
     size = stat_info.st_size
     creation_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(stat_info.st_ctime))
+
+    # Get author using subprocess and stat command
     try:
-        author = pwd.getpwuid(stat_info.st_uid).pw_name
-    except KeyError:
+        author = subprocess.check_output(['stat', '-c', '%U', path]).decode().strip()
+    except Exception as e:
         author = "Unknown"
+
     return size, creation_time, author
+
+def get_folder_size(folder):
+    """Calculates the total size of all files within the folder"""
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(folder):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            total_size += os.path.getsize(fp)
+    return total_size
 
 def list_files(startpath):
     file_structure = []
@@ -20,7 +32,8 @@ def list_files(startpath):
     for root, dirs, files in os.walk(startpath):
         level = root.replace(startpath, '').count(os.sep)
         folder_name = os.path.basename(root)
-        folder_size, folder_creation_time, folder_author = get_file_info(root)
+        folder_size = get_folder_size(root)
+        folder_creation_time, folder_author = get_file_info(root)[1:]
         folder_info = f"{folder_name}/ (Size: {folder_size}, Created: {folder_creation_time}, Author: {folder_author})"
         row = [''] * (level + 1)
         row[level] = folder_info
@@ -37,7 +50,7 @@ def list_files(startpath):
     return file_structure
 
 # Define the path
-path = "/sss/projects/folders/"
+path = "/home/hussain/Personal"
 
 # Get the file structure
 file_structure = list_files(path)
@@ -60,57 +73,6 @@ print(f"File structure saved to {excel_file}")
 
 # Save to CSV
 csv_file = "file_structure_hierarchical_info.csv"
-df.to_csv(csv_file, index=False, header=False)
-
-print(f"File structure saved to {csv_file}")
-
-
-
-import os
-import pandas as pd
-
-def list_files(startpath):
-    file_structure = []
-
-    for root, dirs, files in os.walk(startpath):
-        level = root.replace(startpath, '').count(os.sep)
-        folder_name = os.path.basename(root)
-        # Create a row with columns for each level
-        row = [''] * (level + 1)
-        row[level] = folder_name + '/'
-        file_structure.append(row)
-
-        for f in files:
-            file_row = [''] * (level + 2)
-            file_row[level + 1] = f
-            file_structure.append(file_row)
-
-    return file_structure
-
-# Define the path
-path = "/sss/projects/folders/"
-
-# Get the file structure
-file_structure = list_files(path)
-
-# Determine the maximum number of columns needed
-max_depth = max(len(row) for row in file_structure)
-
-# Ensure all rows have the same number of columns
-for row in file_structure:
-    row.extend([''] * (max_depth - len(row)))
-
-# Create a DataFrame
-df = pd.DataFrame(file_structure)
-
-# Save to Excel
-excel_file = "file_structure_hierarchical.xlsx"
-df.to_excel(excel_file, index=False, header=False)
-
-print(f"File structure saved to {excel_file}")
-
-# Save to CSV
-csv_file = "file_structure_hierarchical.csv"
 df.to_csv(csv_file, index=False, header=False)
 
 print(f"File structure saved to {csv_file}")
