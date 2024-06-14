@@ -1,0 +1,48 @@
+import os
+import pandas as pd
+
+def list_files(startpath):
+    file_structure = []
+
+    for root, dirs, files in os.walk(startpath):
+        level = root.replace(startpath, '').count(os.sep)
+        folder_name = os.path.basename(root)
+        # Create a row with columns for each level
+        row = [''] * (level + 1)
+        row[level] = folder_name + '/'
+        file_structure.append(row)
+
+        for f in files:
+            file_row = [''] * (level + 2)
+            file_row[level + 1] = f
+            file_structure.append(file_row)
+
+    return file_structure
+
+# Define the path
+path = "/sss/projects/folders/"
+
+# Get the file structure
+file_structure = list_files(path)
+
+# Determine the maximum number of columns needed
+max_depth = max(len(row) for row in file_structure)
+
+# Ensure all rows have the same number of columns
+for row in file_structure:
+    row.extend([''] * (max_depth - len(row)))
+
+# Create a DataFrame
+df = pd.DataFrame(file_structure)
+
+# Save to Excel
+excel_file = "file_structure_hierarchical.xlsx"
+df.to_excel(excel_file, index=False, header=False)
+
+print(f"File structure saved to {excel_file}")
+
+# Save to CSV
+csv_file = "file_structure_hierarchical.csv"
+df.to_csv(csv_file, index=False, header=False)
+
+print(f"File structure saved to {csv_file}")
