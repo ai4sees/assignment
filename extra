@@ -1,5 +1,73 @@
 import os
 import pandas as pd
+import pwd
+import time
+
+def get_file_info(path):
+    """Returns size, creation time, and author of the file"""
+    stat_info = os.stat(path)
+    size = stat_info.st_size
+    creation_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(stat_info.st_ctime))
+    try:
+        author = pwd.getpwuid(stat_info.st_uid).pw_name
+    except KeyError:
+        author = "Unknown"
+    return size, creation_time, author
+
+def list_files(startpath):
+    file_structure = []
+
+    for root, dirs, files in os.walk(startpath):
+        level = root.replace(startpath, '').count(os.sep)
+        folder_name = os.path.basename(root)
+        folder_size, folder_creation_time, folder_author = get_file_info(root)
+        folder_info = f"{folder_name}/ (Size: {folder_size}, Created: {folder_creation_time}, Author: {folder_author})"
+        row = [''] * (level + 1)
+        row[level] = folder_info
+        file_structure.append(row)
+
+        for f in files:
+            file_path = os.path.join(root, f)
+            file_size, file_creation_time, file_author = get_file_info(file_path)
+            file_info = f"{f} (Size: {file_size}, Created: {file_creation_time}, Author: {file_author})"
+            file_row = [''] * (level + 2)
+            file_row[level + 1] = file_info
+            file_structure.append(file_row)
+
+    return file_structure
+
+# Define the path
+path = "/sss/projects/folders/"
+
+# Get the file structure
+file_structure = list_files(path)
+
+# Determine the maximum number of columns needed
+max_depth = max(len(row) for row in file_structure)
+
+# Ensure all rows have the same number of columns
+for row in file_structure:
+    row.extend([''] * (max_depth - len(row)))
+
+# Create a DataFrame
+df = pd.DataFrame(file_structure)
+
+# Save to Excel
+excel_file = "file_structure_hierarchical_info.xlsx"
+df.to_excel(excel_file, index=False, header=False)
+
+print(f"File structure saved to {excel_file}")
+
+# Save to CSV
+csv_file = "file_structure_hierarchical_info.csv"
+df.to_csv(csv_file, index=False, header=False)
+
+print(f"File structure saved to {csv_file}")
+
+
+
+import os
+import pandas as pd
 
 def list_files(startpath):
     file_structure = []
